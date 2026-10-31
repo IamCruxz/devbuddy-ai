@@ -59,6 +59,11 @@ Depois, crie na pasta do projeto um arquivo chamado `.env` com este conteúdo, t
 ```
 GEMINI_API_KEY=sua_chave_aqui
 ```
+Se a sua rede não consegue usar IPv6 (o programa fica travado esperando a conexão), acrescente também esta linha ao `.env`:
+
+```
+FORCAR_IPV4=true
+```
 
 O arquivo `.env` está no `.gitignore` e **nunca deve ser enviado ao GitHub**.
 
@@ -85,7 +90,7 @@ Os testes cobrem **apenas** a lógica de retentativas e de modelo reserva (`cham
 - **Retentativas só testadas com erros simulados:** não foi verificado como o SDK se comporta em todas as falhas reais, em especial nas falhas de rede. O cabeçalho `retry-after` do servidor ainda não é respeitado.
 - **Tempo de espera:** em uma falha de rede prolongada, o programa pode levar vários minutos para desistir.
 - **Nomes de modelos mudam:** se um modelo da lista deixar de existir, o programa pula para o próximo, mas a lista precisa ser atualizada de vez em quando.
-- **Somente IPv4:** o código força conexões por IPv4, porque na rede do autor o IPv6 não funcionava. Em uma rede só com IPv6, isso pode impedir a conexão.
+ - **IPv4 opcional:** por padrão, o programa usa a rede normalmente. Em redes onde o IPv6 não funciona, ele pode travar esperando a conexão, e a solução é ligar `FORCAR_IPV4=true` no `.env`. Foi testado apenas com essa opção ligada, na rede do autor. O caminho com a opção desligada não foi verificado.
 - **Pouco testado manualmente:** a qualidade das explicações foi observada em poucos exemplos, em Windows com Python 3.14.
 - **Respostas de IA podem errar:** confira as explicações antes de confiar nelas.
 
