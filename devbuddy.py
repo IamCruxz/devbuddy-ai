@@ -1,3 +1,4 @@
+import logging
 import os
 
 import httpx
@@ -5,8 +6,9 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import errors, types
 
+from chamadas import TodosModelosFalharam, gerar_com_fallback
+
 # --- Configurações: para mudar algo, mude aqui ---
-MODELO = "gemini-3.5-flash-lite"
 TIMEOUT_MS = 60000  # 60 segundos, em milissegundos
 LIMITE_CARACTERES = 5000
 
@@ -44,13 +46,15 @@ def criar_cliente():
     if not chave:
         raise SystemExit("Chave não encontrada. Confira o arquivo .env.")
 
-    # Só IPv4: na sua rede o IPv6 não funciona.
+    # Só IPv4: na rede do autor o IPv6 não funcionava.
     transporte = httpx.HTTPTransport(local_address="0.0.0.0")
     return genai.Client(
         api_key=chave,
         http_options=types.HttpOptions(
             timeout=TIMEOUT_MS,
             client_args={"transport": transporte},
+            # As retentativas ficam por nossa conta, em chamadas.py.
+            retry_options=types.HttpRetryOptions(attempts=1),
         ),
     )
 
@@ -70,15 +74,21 @@ def ler_codigo():
 
 def explicar_codigo(client, codigo):
     """Envia o código ao Gemini e devolve a explicação em texto."""
-    resposta = client.models.generate_content(
-        model=MODELO,
-        contents=f"Explique este código para um iniciante:\n\n{codigo}",
-        config=types.GenerateContentConfig(system_instruction=INSTRUCOES),
-    )
-    return resposta.text or "O modelo não devolveu texto. Tente de novo."
+
+    def chamar(modelo):
+        resposta = client.models.generate_content(
+            model=modelo,
+            contents=f"Explique este código para um iniciante:\n\n{codigo}",
+            config=types.GenerateContentConfig(system_instruction=INSTRUCOES),
+        )
+        return resposta.text or "O modelo não devolveu texto. Tente de novo."
+
+    return gerar_com_fallback(chamar)
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
     print("=== DevBuddy AI ===")
     print("Aviso: não cole senhas, chaves nem código privado.\n")
 
@@ -93,8 +103,10 @@ def main():
     print("\nPensando...\n")
     try:
         print(explicar_codigo(client, codigo))
+    except TodosModelosFalharam:
+        print("Nenhum modelo respondeu agora. Tente de novo em alguns minutos.")
     except errors.APIError as erro:
-        print(f"Não consegui falar com o Gemini (erro {erro.code}). Tente de novo em instantes.")
+        print(f"O Gemini recusou o pedido (erro {erro.code}). Confira a chave e o código enviado.")
 
 
 if __name__ == "__main__":
