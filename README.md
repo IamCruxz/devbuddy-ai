@@ -48,6 +48,11 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
+Se o PowerShell mostrar um erro dizendo que a execução de scripts está desabilitada ao ativar o ambiente virtual, rode este comando e tente ativar de novo. Ele libera scripts apenas na janela atual do terminal e não altera o restante do Windows:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```
 
 Depois, crie na pasta do projeto um arquivo chamado `.env` com este conteúdo, trocando pelo valor da sua chave:
 
